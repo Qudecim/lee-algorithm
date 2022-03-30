@@ -21,7 +21,11 @@ let matrix = []
 for (let y = 0; y < size.width / size.box; y++) {
     matrix.push([])
     for (let x = 0; x < size.height / size.box; x++) {
-        matrix[y].push({number:1000, type:'ground'})
+        let is_can_go = true
+        if (Math.random() > 0.8) {
+            is_can_go = false
+        }
+        matrix[y].push({number:1000, type:'ground', can_go: is_can_go})
     }
 }
 
@@ -37,7 +41,8 @@ function draw() {
     //drawPoint(start_point.x, start_point.y)
 }
 
-function drawPoint(x, y) {
+function drawPoint(x, y, color = 'black') {
+    ctx.fillStyle = color;
     ctx.fillRect(x * size.box, y * size.box, size.box, size.box)
 }
 
@@ -45,13 +50,18 @@ function drawNumber(number, x, y) {
     ctx.font = "24px serif";
     ctx.textAlign = 'center';
     ctx.textBaseline  = 'middle';
+    ctx.fillStyle = 'black';
     ctx.fillText(number, x * size.box + (size.box / 2), y * size.box + (size.box / 2), size.box)
 }
 
 function drawSteps() {
     for (let y = 0; y < matrix.length; y++) {
         for (let x = 0; x < matrix[y].length; x++) {
-            drawNumber(matrix[y][x].number, x, y)
+            if (isCanGo(x, y)) {
+                drawNumber(matrix[y][x].number, x, y)
+            } else {
+                drawPoint(x, y, 'red')
+            }
         }
     }
 }
@@ -65,7 +75,7 @@ function steps(start_x, start_y, need_type) {
     matrix[start_y][start_x].number = 0
 
     let stop = false
-    while (!stop && step < 10) {
+    while (!stop && step < 50) {
         stop = true
 
         for (let y = 0; y < y_max; y++) {
@@ -79,24 +89,16 @@ function steps(start_x, start_y, need_type) {
                     }
 
                     // Лево
-                    if (x > 0 && matrix[y][x - 1].number === 1000) {
-                        matrix[y][x - 1].number = step + 1
-                    }
+                    setStep(x - 1, y, step + 1)
 
                     // Верх
-                    if (y > 0 && matrix[y - 1][x].number === 1000) {
-                        matrix[y - 1][x].number = step + 1
-                    }
+                    setStep(x, y - 1, step + 1)
 
                     // Право
-                    if (x < x_max - 1 && matrix[y][x + 1].number === 1000) {
-                        matrix[y][x + 1].number = step + 1
-                    }
+                    setStep(x + 1, y, step + 1)
 
                     // Вниз
-                    if (y < y_max - 1 && matrix[y + 1][x].number === 1000) {
-                        matrix[y + 1][x].number = step + 1
-                    }
+                    setStep(x, y + 1, step + 1)
 
                 }
             }
@@ -115,7 +117,7 @@ function steps(start_x, start_y, need_type) {
         step: step
     }]
     let i = 0
-    while (!stop && i < 3) {
+    while (!stop && i < 10) {
         let current = path[path.length - 1]
 
         if (current.x === start_x && current.y === start_y) {
@@ -170,6 +172,22 @@ function steps(start_x, start_y, need_type) {
 
 }
 
+function isCanGo(x,y) {
+    return matrix[y][x].can_go
+}
+
+function setStep(x, y, step) {
+    if (matrix[y] !== undefined) {
+        if (matrix[y][x] !== undefined) {
+            if (isCanGo(x, y)) {
+                if (matrix[y][x].number === 1000) {
+                    matrix[y][x].number = step
+                }
+            }
+        }
+    }
+}
+
 function drawPath(path) {
     ctx.beginPath();
     let last = path[0]
@@ -181,11 +199,18 @@ function drawPath(path) {
     ctx.stroke();
 }
 
+drawPoint(hero.x, hero.y);
+drawPoint(enemy.x, enemy.y);
+
 draw()
 let d = steps(hero.x, hero.y, 'build')
 console.log(d)
-drawPath(d)
+if (d) {
+    drawPath(d)
+}
+
 drawSteps()
 
-drawPoint(hero.x, hero.y);
-drawPoint(enemy.x, enemy.y);
+
+
+console.log(matrix)
