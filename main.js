@@ -2,9 +2,9 @@ let canvas = document.getElementById('canvas')
 let ctx = canvas.getContext('2d')
 
 let size = {
-    width: 500,
-    height: 500,
-    box: 50
+    width: 600,
+    height: 600,
+    box: 30
 }
 
 let hero = {
@@ -13,13 +13,16 @@ let hero = {
 }
 
 let enemy = {
-    x:9,
-    y:9,
+    x:15,
+    y:15,
     type:'build'
 }
 
+let options = {
+    show_number: true
+}
+
 let matrix = generateMap()
-console.log(matrix)
 
 // CALCULATE
 
@@ -32,11 +35,7 @@ function generateMap() {
     for (let y = 0; y < size.width / size.box; y++) {
         map.push([])
         for (let x = 0; x < size.height / size.box; x++) {
-            let is_can_go = true
-            if (Math.random() > 0.9) {
-                is_can_go = false
-            }
-            map[y].push({number:-1, type:'ground', can_go: is_can_go})
+            map[y].push({number:-1, type:'ground', can_go: true})
         }
     }
     map[enemy.y][enemy.x].type = enemy.type
@@ -51,6 +50,13 @@ function generateMap() {
  * @returns {[{x: number, y: number, step: number}]|boolean}
  */
 function steps(start_x, start_y, need_type) {
+
+    for (let y = 0; y < size.width / size.box; y++) {
+        for (let x = 0; x < size.height / size.box; x++) {
+            matrix[y][x].number = -1
+        }
+    }
+
     let x_max = size.width / size.box
     let y_max = size.height / size.box
     let finish_x = -1
@@ -60,7 +66,7 @@ function steps(start_x, start_y, need_type) {
 
     // Count steps
     let stop = false
-    while (!stop && step < 50) {
+    while (!stop) {
         stop = true
 
         for (let y = 0; y < y_max; y++) {
@@ -103,7 +109,7 @@ function steps(start_x, start_y, need_type) {
         step: step
     }]
     let i = 0
-    while (!stop && i < 100) {
+    while (!stop && i < 500) {
         let current = path[path.length - 1]
         i++
         if (current.x === start_x && current.y === start_y) {
@@ -112,28 +118,28 @@ function steps(start_x, start_y, need_type) {
         }
 
         // LEFT
-        let currentStep = backStep(current.x - 1, current.y, step)
+        let currentStep = backStep(current.x - 1, current.y, current.step)
         if (currentStep) {
             path.push(currentStep)
             continue
         }
 
         // UP
-        currentStep = backStep(current.x, current.y - 1, step)
+        currentStep = backStep(current.x, current.y - 1, current.step)
         if (currentStep) {
             path.push(currentStep)
             continue
         }
 
         // RIGHT
-        currentStep = backStep(current.x + 1, current.y, step)
+        currentStep = backStep(current.x + 1, current.y, current.step)
         if (currentStep) {
             path.push(currentStep)
             continue
         }
 
         // DOWN
-        currentStep = backStep(current.x, current.y + 1, step)
+        currentStep = backStep(current.x, current.y + 1, current.step)
         if (currentStep) {
             path.push(currentStep)
             continue
@@ -141,12 +147,7 @@ function steps(start_x, start_y, need_type) {
 
 
     }
-
-    console.log(path)
-
     return path
-
-
 }
 
 /**
@@ -177,11 +178,10 @@ function setStep(x, y, step) {
     }
 }
 
-function backStep(x, y, step)
-{
+function backStep(x, y, step) {
     if (matrix[y] !== undefined) {
         if (matrix[y][x] !== undefined) {
-            if (matrix[y][x].number > 0 && matrix[y][x].number < step) {
+            if (matrix[y][x].number >= 0 && matrix[y][x].number < step) {
                 return {
                     x: x,
                     y: y,
@@ -196,9 +196,31 @@ function backStep(x, y, step)
 
 // DRAWING
 /**
- * Draw lines
+ * main draw function
  */
 function draw() {
+
+    ctx.fillStyle = 'white'
+    ctx.fillRect(0,0,size.width, size.height)
+
+    drawLines()
+    drawPoint(hero.x, hero.y);
+    drawPoint(enemy.x, enemy.y);
+
+    let path = steps(hero.x, hero.y, 'build')
+    if (path) {
+        drawPath(path)
+    }
+    drawSteps()
+
+    setTimeout(draw, 100)
+}
+
+/**
+ * Draw lines
+ */
+function drawLines() {
+    ctx.fillStyle = 'black'
     for (let step = 0; step <= size.height / size.box; step++) {
         ctx.fillRect(step * size.box, 0, 1, size.height)
         ctx.fillRect(0, step * size.box, size.width, 1)
@@ -223,6 +245,9 @@ function drawPoint(x, y, color = 'black') {
  * @param y
  */
 function drawNumber(number, x, y) {
+    if (!options.show_number) {
+        return
+    }
     ctx.font = "24px serif";
     ctx.textAlign = 'center';
     ctx.textBaseline  = 'middle';
@@ -262,13 +287,18 @@ function drawPath(path) {
 }
 
 
-// INIT
-drawPoint(hero.x, hero.y);
-drawPoint(enemy.x, enemy.y);
+// CONTROL
 
-draw()
-let path = steps(hero.x, hero.y, 'build')
-if (path) {
-    drawPath(path)
+function click(event) {
+    let pos_x = Math.floor(event.offsetX / size.box)
+    let pos_y = Math.floor(event.offsetY / size.box)
+
+    matrix[pos_y][pos_x].can_go = !matrix[pos_y][pos_x].can_go
 }
-drawSteps()
+
+canvas.addEventListener('mousedown', click)
+
+
+// INIT
+draw()
+
