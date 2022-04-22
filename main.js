@@ -19,7 +19,7 @@ let enemy = {
 }
 
 let options = {
-    show_number: true
+    show_number: false
 }
 
 let matrix = generateMap()
@@ -63,7 +63,7 @@ function steps(start_x, start_y, need_type) {
     let finish_y = -1
     let step = 0
     matrix[start_y][start_x].number = 0
-
+    
     // Count steps
     let stop = false
     while (!stop) {
@@ -71,6 +71,7 @@ function steps(start_x, start_y, need_type) {
 
         for (let y = 0; y < y_max; y++) {
             for (let x = 0; x < x_max; x++) {
+                
                 if (matrix[y][x].number === step) {
                     stop = false
                     if (matrix[y][x].type === need_type) {
@@ -91,10 +92,22 @@ function steps(start_x, start_y, need_type) {
                     // Вниз
                     setStep(x, y + 1, step + 1)
 
+                    // Низ - право
+                    setStep(x + 1, y + 1, round(step + 1.6))
+
+                    // Низ - Лево
+                    setStep(x - 1, y + 1, round(step + 1.6))
+
+                    // Верх - право
+                    setStep(x + 1, y - 1, round(step + 1.6))
+
+                    // Верх - Лево
+                    setStep(x + 1, y - 1, round(step + 1.6))
+
                 }
             }
         }
-        step++
+        step = getNextStep(step)
     }
 
     if (finish_y === -1) {
@@ -117,37 +130,89 @@ function steps(start_x, start_y, need_type) {
             continue
         }
 
+        let steps = []
+
         // LEFT
         let currentStep = backStep(current.x - 1, current.y, current.step)
         if (currentStep) {
-            path.push(currentStep)
-            continue
+            steps.push(currentStep)
         }
 
         // UP
         currentStep = backStep(current.x, current.y - 1, current.step)
         if (currentStep) {
-            path.push(currentStep)
-            continue
+            steps.push(currentStep)
         }
 
         // RIGHT
         currentStep = backStep(current.x + 1, current.y, current.step)
         if (currentStep) {
-            path.push(currentStep)
-            continue
+            steps.push(currentStep)
         }
 
         // DOWN
         currentStep = backStep(current.x, current.y + 1, current.step)
         if (currentStep) {
-            path.push(currentStep)
-            continue
+            steps.push(currentStep)
         }
 
+        // UP - LEFT
+        currentStep = backStep(current.x - 1, current.y - 1, current.step)
+        if (currentStep) {
+            steps.push(currentStep)
+        }
 
+        // UP - RIGHT
+        currentStep = backStep(current.x + 1, current.y - 1, current.step)
+        if (currentStep) {
+            steps.push(currentStep)
+        }
+
+        // DOWN - LEFT
+        currentStep = backStep(current.x - 1, current.y + 1, current.step)
+        if (currentStep) {
+            steps.push(currentStep)
+        }
+
+        // DOWN - RIGHT
+        currentStep = backStep(current.x + 1, current.y + 1, current.step)
+        if (currentStep) {
+            steps.push(currentStep)
+        }
+
+        if (steps.length) {
+            nextStep = steps[0]
+            for (let i = 1; i < steps.length; i++) {
+                if (nextStep.step > steps[i].step) {
+                    nextStep = steps[i]
+                }
+            }
+
+            path.push(nextStep)
+        }
     }
     return path
+}
+
+function round(num) {
+    var m = Number((Math.abs(num) * 100).toPrecision(15));
+    return Math.round(m) / 100 * Math.sign(num);
+}
+
+function getNextStep(step)
+{
+    let currentStep = 1000
+    for (let y = 0; y < matrix.length; y++) {
+        for (let x = 0; x < matrix.length; x++) {
+            if (matrix[y][x].number > step) {
+                if (matrix[y][x].number < currentStep) {
+                    currentStep = matrix[y][x].number
+                }
+            }
+        }
+    }
+
+    return currentStep
 }
 
 /**
@@ -248,7 +313,7 @@ function drawNumber(number, x, y) {
     if (!options.show_number) {
         return
     }
-    ctx.font = "24px serif";
+    ctx.font = "18px serif";
     ctx.textAlign = 'center';
     ctx.textBaseline  = 'middle';
     ctx.fillStyle = 'black';
